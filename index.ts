@@ -44,13 +44,6 @@ const argv = require('yargs')
   .alias('h', 'help')
   .argv
 
-
-interface GraphQLAppliedDiretives {
-  isApplied(directiveName: string): boolean;
-  getAppliedDirectives(): Array<string>;
-  getDirectiveArgs(directiveName: string): { [argName: string]: any };
-}
-
 const fakeDefinitionIDL = fs.readFileSync(path.join(__dirname, 'fake_definition.graphql'), 'utf-8');
 let userIDL;
 if (argv.file) {
@@ -60,22 +53,65 @@ if (argv.file) {
 }
 const idl = fakeDefinitionIDL + userIDL;
 
-const schema = buildSchema(idl);
-fakeSchema(schema);
+//const schema = buildSchema(idl);
+//fakeSchema(schema);
 
-const app = express();
+import * as graphqlFetch from 'graphql-fetch';
+import {
+  parse,
+  extendSchema,
+  buildClientSchema,
+  introspectionQuery,
+} from 'graphql';
 
-app.use('/graphql', graphqlHTTP({
-  schema,
-  graphiql: true
-}));
+const swServer = graphqlFetch('http://localhost:54464') as
+  (query:String, vars?:any, opts?:any) => Promise<any>;
 
-app.use('/editor', express.static(path.join(__dirname, 'editor')));
-
-app.get('/user-idl', (req, res) => {
-  res
-    .status(200).send(userIDL);
+swServer(introspectionQuery).then(introspection => {
+  //TODO: check for errors
+  const serverSchema = buildClientSchema(introspection.data);
+  const extensionIDL = fakeDefinitionIDL + `
+    extend type Person {
+      pet: String @fake(type: imageUrl, options: { imageCategory: cats})
+    }
+  `;
+  const schema = extendSchema(serverSchema, parse(extensionIDL));
+  fakeSchema(schema);
+  runServer(schema);
 })
-app.listen(argv.port);
 
-console.log(`http://localhost:${argv.port}:/graphql`);
+function runServer(schema) {
+  const app = express();
+
+  app.use('/graphql', graphqlHTTP(request => {
+    return (graphqlHTTP as any).getGraphQLParams(request).then(params => {
+      //Dirty hack untill graphql-express will be split into multiple middlewares:
+      //https://github.com/graphql/express-graphql/issues/113
+      if (params.operationName === 'null')
+        params.operationName = null;
+      console.log(params);
+      request.body = params;
+
+      ////if (cb)
+      ////  cb(request, params.query, params.variables, params.operationName);
+      //console.log('test4');
+      //console.log(params);
+
+      return {
+        schema,
+        graphiql: true,
+      };
+    });
+  }));
+
+
+  app.use('/editor', express.static(path.join(__dirname, 'editor')));
+
+  app.get('/user-idl', (req, res) => {
+    res
+      .status(200).send(userIDL);
+  })
+  app.listen(argv.port);
+
+  console.log(`http://localhost:${argv.port}:/graphql`);
+}
