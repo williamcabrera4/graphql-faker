@@ -64,7 +64,7 @@ import {
   introspectionQuery,
 } from 'graphql';
 
-const swServer = graphqlFetch('http://localhost:54464') as
+const swServer = graphqlFetch('http://localhost:59988') as
   (query:String, vars?:any, opts?:any) => Promise<any>;
 
 swServer(introspectionQuery).then(introspection => {
@@ -84,11 +84,14 @@ function runServer(schema) {
   const app = express();
 
   app.use('/graphql', graphqlHTTP(request => {
+    debugger;
     return (graphqlHTTP as any).getGraphQLParams(request).then(params => {
       //Dirty hack untill graphql-express will be split into multiple middlewares:
       //https://github.com/graphql/express-graphql/issues/113
       if (params.operationName === 'null')
         params.operationName = null;
+      if (params.raw === false)
+        params.raw = undefined;
       console.log(params);
       request.body = params;
 

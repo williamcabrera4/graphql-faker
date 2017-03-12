@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon -e ts,graphql --exec 'ts-node index.ts -- --help'",
+    "start": "nodemon -e ts,graphql --exec 'ts-node index.ts'",
+    "debug": "ts-node --inspect index.ts",
     "build:editor": "cd editor && npm install && npm run build",
     "cmd": "ts-node index.ts"
   },
