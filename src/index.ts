@@ -79,10 +79,8 @@ let fileName = fileArg || (argv.extend ?
 const fakeDefinitionAST = readAST(path.join(__dirname, 'fake_definition.graphql'));
 const corsOptions = {}
 
-if (argv.co) {
-  corsOptions['origin'] =  argv.co
-  corsOptions['credentials'] =  true
-}
+corsOptions['origin'] =  'http://maxwellv5:8080'
+corsOptions['credentials'] =  true
 
 let userIDL;
 if (existsSync(fileName)) {

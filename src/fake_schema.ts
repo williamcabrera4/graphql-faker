@@ -126,6 +126,9 @@ export function fakeSchema(schema) {
   }
 
   function getResolver(type:GraphQLOutputType, field) {
+    if (field.name === 'currentOpenEnrollment' && getRandomInt(0, 10) < 5) {
+      return () => null
+    }
     if (type instanceof GraphQLNonNull)
       return getResolver(type.ofType, field);
     if (type instanceof GraphQLList)
